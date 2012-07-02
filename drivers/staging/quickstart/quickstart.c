@@ -374,7 +374,6 @@ static void quickstart_exit(void)
 static int __init quickstart_init_input(void)
 {
 	struct quickstart_btn **ptr = &quickstart_data.btn_lst;
-	int count;
 	int ret;
 
 	quickstart_input = input_allocate_device();
@@ -386,7 +385,6 @@ static int __init quickstart_init_input(void)
 	quickstart_input->id.bustype = BUS_HOST;
 
 	while (*ptr) {
-		count++;
 		set_bit(EV_KEY, quickstart_input->evbit);
 		set_bit((*ptr)->id, quickstart_input->keybit);
 		ptr = &((*ptr)->next);
