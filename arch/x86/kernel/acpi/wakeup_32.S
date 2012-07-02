@@ -9,7 +9,6 @@
 	ALIGN
 
 ENTRY(wakeup_pmode_return)
-wakeup_pmode_return:
 	movw	$__KERNEL_DS, %ax
 	movw	%ax, %ss
 	movw	%ax, %ds
