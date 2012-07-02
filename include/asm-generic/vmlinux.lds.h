@@ -161,6 +161,7 @@
 	*(.data)							\
 	*(.ref.data)							\
 	*(.data..shared_aligned) /* percpu related */			\
+	*(.gnu.linkonce.d.*)						\
 	DEV_KEEP(init.data)						\
 	DEV_KEEP(exit.data)						\
 	CPU_KEEP(init.data)						\
@@ -394,6 +395,7 @@
 		*(.text.hot)						\
 		*(.text)						\
 		*(.ref.text)						\
+		*(.gnu.linkonce.t.*)					\
 	DEV_KEEP(init.text)						\
 	DEV_KEEP(exit.text)						\
 	CPU_KEEP(init.text)						\
