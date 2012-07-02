@@ -35,6 +35,10 @@ obj-y			+= tsc.o io_delay.o rtc.o
 obj-y			+= pci-iommu_table.o
 obj-y			+= resource.o
 
+AFLAGS_trampoline_32.o  = -no-integrated-as
+AFLAGS_trampoline_64.o  = -no-integrated-as
+AFLAGS_reboot_32.o  = -no-integrated-as
+
 obj-y				+= trampoline.o trampoline_$(BITS).o
 obj-y				+= process.o
 obj-y				+= i387.o xsave.o
