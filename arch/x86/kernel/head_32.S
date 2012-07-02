@@ -532,10 +532,10 @@ rp_sidt:
 	movl %edx,8*\trapno+4(%edi)
 .endm
 
-	set_early_handler handler=early_divide_err,trapno=0
-	set_early_handler handler=early_illegal_opcode,trapno=6
-	set_early_handler handler=early_protection_fault,trapno=13
-	set_early_handler handler=early_page_fault,trapno=14
+	set_early_handler early_divide_err,0
+	set_early_handler early_illegal_opcode,6
+	set_early_handler early_protection_fault,13
+	set_early_handler early_page_fault,14
 
 	ret
 
