@@ -436,7 +436,6 @@ static int qset_add_urb_sg(struct whc *whc, struct whc_qset *qset, struct urb *u
 	int i;
 	int ntds = 0;
 	struct whc_std *std = NULL;
-	struct whc_page_list_entry *entry;
 	dma_addr_t prev_end = 0;
 	size_t pl_len;
 	int p = 0;
@@ -513,7 +512,7 @@ static int qset_add_urb_sg(struct whc *whc, struct whc_qset *qset, struct urb *u
 				return -ENOMEM;
 			}
 
-			for (;p < std->num_pointers; p++, entry++) {
+			for (;p < std->num_pointers; p++) {
 				std->pl_virt[p].buf_ptr = cpu_to_le64(dma_addr);
 				dma_addr = (dma_addr + WHCI_PAGE_SIZE) & ~(WHCI_PAGE_SIZE-1);
 			}
