@@ -400,7 +400,7 @@ END(save_paranoid)
 ENTRY(ret_from_fork)
 	DEFAULT_FRAME
 
-	LOCK ; btr $TIF_FORK,TI_flags(%r8)
+	LOCK ; btrl $TIF_FORK,TI_flags(%r8)
 
 	pushq_cfi kernel_eflags(%rip)
 	popfq_cfi				# reset kernel eflags
