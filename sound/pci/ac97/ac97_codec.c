@@ -1170,7 +1170,13 @@ static inline int printable(unsigned int x)
 	return x;
 }
 
-static struct snd_kcontrol *snd_ac97_cnew(const struct snd_kcontrol_new *_template,
+/*
+ * Rather then using noinline to prevent stack consumption, use
+ * noinline_for_stack instead.  For documentaiton reasons.
+ * Neede for build with clang.
+ */
+
+static noinline_for_stack struct snd_kcontrol *snd_ac97_cnew(const struct snd_kcontrol_new *_template,
 					  struct snd_ac97 * ac97)
 {
 	struct snd_kcontrol_new template;
