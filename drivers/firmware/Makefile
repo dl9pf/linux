@@ -1,6 +1,9 @@
 #
 # Makefile for the linux kernel.
 #
+
+CFLAGS_REMOVE_dmi_scan.o := -fcatch-undefined-behavior
+
 obj-$(CONFIG_DMI)		+= dmi_scan.o
 obj-$(CONFIG_DMI_SYSFS)		+= dmi-sysfs.o
 obj-$(CONFIG_EDD)		+= edd.o
