@@ -320,7 +320,7 @@ int __ethtool_get_settings(struct net_device *dev, struct ethtool_cmd *cmd)
 }
 EXPORT_SYMBOL(__ethtool_get_settings);
 
-static int ethtool_get_settings(struct net_device *dev, void __user *useraddr)
+static noinline_for_stack int ethtool_get_settings(struct net_device *dev, void __user *useraddr)
 {
 	int err;
 	struct ethtool_cmd cmd;
@@ -334,7 +334,7 @@ static int ethtool_get_settings(struct net_device *dev, void __user *useraddr)
 	return 0;
 }
 
-static int ethtool_set_settings(struct net_device *dev, void __user *useraddr)
+static noinline_for_stack int ethtool_set_settings(struct net_device *dev, void __user *useraddr)
 {
 	struct ethtool_cmd cmd;
 
