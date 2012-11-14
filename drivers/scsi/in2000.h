@@ -72,7 +72,7 @@ int __dummy_1,__dummy_2; \
    orl %%ecx, %%ecx       \n \
    jz 1f                  \n \
    rep                    \n \
-   insw (%%dx),%%es:(%%edi) \n \
+   insw %%dx,%%es:(%%edi) \n \
 1: "                       \
    : "=D" (sp) ,"=c" (__dummy_1) ,"=d" (__dummy_2)  /* output */   \
    : "2" (f), "0" (sp), "1" (i)  /* input */    \
@@ -87,7 +87,7 @@ int __dummy_1,__dummy_2; \
    orl %%ecx, %%ecx       \n \
    jz 1f                  \n \
    rep                    \n \
-   outsw %%ds:(%%esi),(%%dx) \n \
+   outsw %%ds:(%%esi),%%dx \n \
 1: "                       \
    : "=S" (sp) ,"=c" (__dummy_1) ,"=d" (__dummy_2)/* output */   \
    : "2" (f), "0" (sp), "1" (i)  /* input */    \
