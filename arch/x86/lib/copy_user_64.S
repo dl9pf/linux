@@ -103,7 +103,6 @@ ENDPROC(_copy_from_user)
 	.section .fixup,"ax"
 	/* must zero dest */
 ENTRY(bad_from_user)
-bad_from_user:
 	CFI_STARTPROC
 	movl %edx,%ecx
 	xorl %eax,%eax

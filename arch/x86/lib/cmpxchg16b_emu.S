@@ -39,7 +39,6 @@ CFI_STARTPROC
 # *atomic* on a single cpu (as provided by the this_cpu_xx class of
 # macros).
 #
-this_cpu_cmpxchg16b_emu:
 	pushf
 	cli
 

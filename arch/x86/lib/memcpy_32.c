@@ -4,7 +4,7 @@
 #undef memcpy
 #undef memset
 
-void *memcpy(void *to, const void *from, size_t n)
+asmlinkage void *memcpy(void *to, const void *from, size_t n)
 {
 #ifdef CONFIG_X86_USE_3DNOW
 	return __memcpy3d(to, from, n);
@@ -14,13 +14,13 @@ void *memcpy(void *to, const void *from, size_t n)
 }
 EXPORT_SYMBOL(memcpy);
 
-void *memset(void *s, int c, size_t count)
+asmlinkage void *memset(void *s, int c, size_t count)
 {
 	return __memset(s, c, count);
 }
 EXPORT_SYMBOL(memset);
 
-void *memmove(void *dest, const void *src, size_t n)
+asmlinkage void *memmove(void *dest, const void *src, size_t n)
 {
 	int d0,d1,d2,d3,d4,d5;
 	char *ret = dest;
@@ -196,7 +196,7 @@ void *memmove(void *dest, const void *src, size_t n)
 		".p2align 4\n\t"
 		"11:"
 		: "=&c" (d0), "=&S" (d1), "=&D" (d2),
-		  "=r" (d3),"=r" (d4), "=r"(d5)
+		  "=a" (d3),"=b" (d4), "=d"(d5)
 		:"0" (n),
 		 "1" (src),
 		 "2" (dest)
