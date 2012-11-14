@@ -20,6 +20,8 @@ targets		:= vmlinux.bin setup.bin setup.elf bzImage
 targets		+= fdimage fdimage144 fdimage288 image.iso mtools.conf
 subdir-		:= compressed
 
+CFLAGS_cpucheck.o = -march=i586
+
 setup-y		+= a20.o bioscall.o cmdline.o copy.o cpu.o cpucheck.o
 setup-y		+= early_serial_console.o edd.o header.o main.o mca.o memory.o
 setup-y		+= pm.o pmjump.o printf.o regs.o string.o tty.o video.o
@@ -55,8 +57,9 @@ $(obj)/cpustr.h: $(obj)/mkcpustr FORCE
 # that way we can complain to the user if the CPU is insufficient.
 KBUILD_CFLAGS	:= $(USERINCLUDE) -g -Os -D_SETUP -D__KERNEL__ \
 		   -DDISABLE_BRANCH_PROFILING \
-		   -Wall -Wstrict-prototypes \
-		   -march=i386 -mregparm=3 \
+		   -Wall -W -Wstrict-prototypes \
+		   -Wno-unused-value -Wno-unused-parameter -mno-sse \
+		   -march=i386 -mregparm=3 -no-integrated-as \
 		   -include $(srctree)/$(src)/code16gcc.h \
 		   -fno-strict-aliasing -fomit-frame-pointer -fno-pic \
 		   $(call cc-option, -ffreestanding) \
