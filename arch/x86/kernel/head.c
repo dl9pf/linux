@@ -20,6 +20,7 @@
 void __init reserve_ebda_region(void)
 {
 	unsigned int lowmem, ebda_addr;
+	unsigned char *p;
 
 	/* To determine the position of the EBDA and the */
 	/* end of conventional memory, we need to look at */
@@ -31,7 +32,8 @@ void __init reserve_ebda_region(void)
 		return;
 
 	/* end of low (conventional) memory */
-	lowmem = *(unsigned short *)__va(BIOS_LOWMEM_KILOBYTES);
+	p = __va(BIOS_LOWMEM_KILOBYTES);
+	lowmem = p[0] + 256 * p[1];
 	lowmem <<= 10;
 
 	/* start of EBDA area */

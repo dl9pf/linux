@@ -457,5 +457,6 @@ ENTRY(nmi_idt_table)
 
 	__PAGE_ALIGNED_BSS
 	.align PAGE_SIZE
-ENTRY(empty_zero_page)
+.globl empty_zero_page
+empty_zero_page:
 	.skip PAGE_SIZE
