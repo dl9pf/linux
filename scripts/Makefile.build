@@ -64,12 +64,15 @@ warning-  := $(empty)
 
 warning-1 := -Wextra -Wunused -Wno-unused-parameter
 warning-1 += -Wmissing-declarations
+warning-1 += -Wno-initializer-overrides
 warning-1 += -Wmissing-format-attribute
-warning-1 += -Wmissing-prototypes
+#warning-1 += -Wmissing-prototypes
 warning-1 += -Wold-style-definition
 warning-1 += $(call cc-option, -Wmissing-include-dirs)
-warning-1 += $(call cc-option, -Wunused-but-set-variable)
+#warning-1 += $(call cc-option, -Wunused-but-set-variable)
 warning-1 += $(call cc-disable-warning, missing-field-initializers)
+warning-1 += -Wno-unused-value -Wno-format -Wno-unknown-warning-option -Wno-self-assign
+warning-1 += -fcatch-undefined-behavior -Wno-sign-compare -Wno-format-zero-length -Wno-uninitialized
 
 warning-2 := -Waggregate-return
 warning-2 += -Wcast-align
