@@ -128,6 +128,11 @@ acpi-y +=		\
 
 acpi-$(ACPI_FUTURE_USAGE) += rsdump.o
 
+CFLAGS_REMOVE_tbfadt.o := -fcatch-undefined-behavior
+CFLAGS_REMOVE_tbinstal.o := -fcatch-undefined-behavior
+CFLAGS_REMOVE_tbutils.o := -fcatch-undefined-behavior
+CFLAGS_REMOVE_tbxface.o := -fcatch-undefined-behavior
+
 acpi-y +=		\
 	tbfadt.o	\
 	tbfind.o	\
