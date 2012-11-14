@@ -28,7 +28,7 @@ static __always_inline void *__inline_memcpy(void *to, const void *from, size_t 
 
 #define __HAVE_ARCH_MEMCPY 1
 #ifndef CONFIG_KMEMCHECK
-#if (__GNUC__ == 4 && __GNUC_MINOR__ >= 3) || __GNUC__ > 4
+#if (__GNUC__ == 4 && __GNUC_MINOR__ >= 3) || __GNUC__ > 4 || defined(__clang__)
 extern void *memcpy(void *to, const void *from, size_t len);
 #else
 extern void *__memcpy(void *to, const void *from, size_t len);
