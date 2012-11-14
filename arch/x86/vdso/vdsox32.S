@@ -18,5 +18,6 @@ vdsox32_end:
 	.align 8
 	.type vdsox32_pages, @object
 vdsox32_pages:
-	.zero (vdsox32_end - vdsox32_start + PAGE_SIZE - 1) / PAGE_SIZE * 8
+#	.zero (vdsox32_end - vdsox32_start + PAGE_SIZE - 1) / PAGE_SIZE * 8
+	.zero (2996 + PAGE_SIZE - 1) / PAGE_SIZE * 8
 	.size vdsox32_pages, .-vdsox32_pages
