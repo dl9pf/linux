@@ -7,7 +7,7 @@ extern void __init early_ioremap_page_table_range_init(void);
 
 extern void __init zone_sizes_init(void);
 
-extern unsigned long __init
+extern unsigned long __meminit
 kernel_physical_mapping_init(unsigned long start,
 			     unsigned long end,
 			     unsigned long page_size_mask);
