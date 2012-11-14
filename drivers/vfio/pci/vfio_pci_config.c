@@ -1078,7 +1078,7 @@ static int vfio_ext_cap_len(struct vfio_pci_device *vdev, u16 ecap, u16 epos)
 		if ((dword & PCI_TPH_CAP_LOC_MASK) == PCI_TPH_LOC_CAP) {
 			int sts;
 
-			sts = byte & PCI_TPH_CAP_ST_MASK;
+			sts = dword & PCI_TPH_CAP_ST_MASK;
 			sts >>= PCI_TPH_CAP_ST_SHIFT;
 			return PCI_TPH_BASE_SIZEOF + round_up(sts * 2, 4);
 		}
