@@ -37,6 +37,12 @@ VDSO_LDFLAGS_vdso.lds = -m64 -Wl,-soname=linux-vdso.so.1 \
 			-Wl,--no-undefined \
 		      	-Wl,-z,max-page-size=4096 -Wl,-z,common-page-size=4096
 
+AFLAGS_vdso.o = -no-integrated-as
+AFLAGS_vdso32.o = -no-integrated-as
+AFLAGS_int80.o = -no-integrated-as
+AFLAGS_syscall.o = -no-integrated-as
+AFLAGS_sysenter.o = -no-integrated-as
+
 $(obj)/vdso.o: $(src)/vdso.S $(obj)/vdso.so
 
 $(obj)/vdso.so.dbg: $(src)/vdso.lds $(vobjs) FORCE
