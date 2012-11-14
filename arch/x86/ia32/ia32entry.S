@@ -460,7 +460,7 @@ GLOBAL(\label)
 	jmp  ia32_ptregs_common	
 	.endm
 
-	CFI_STARTPROC32
+	CFI_STARTPROC32 simple
 
 	PTREGSCALL stub32_rt_sigreturn, sys32_rt_sigreturn, %rdi
 	PTREGSCALL stub32_sigreturn, sys32_sigreturn, %rdi
