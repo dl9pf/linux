@@ -14,8 +14,7 @@ void __init setup_real_mode(void)
 	u16 real_mode_seg;
 	u32 *rel;
 	u32 count;
-	u32 *ptr;
-	u16 *seg;
+	u32 ptr;
 	int i;
 	unsigned char *base;
 	struct trampoline_header *trampoline_header;
@@ -44,17 +43,15 @@ void __init setup_real_mode(void)
 	/* 16-bit segment relocations. */
 	count = rel[0];
 	rel = &rel[1];
-	for (i = 0; i < count; i++) {
-		seg = (u16 *) (base + rel[i]);
-		*seg = real_mode_seg;
-	}
+	for (i = 0; i < count; i++)
+		memcpy(base + rel[i], &real_mode_seg, sizeof real_mode_seg);
 
 	/* 32-bit linear relocations. */
 	count = rel[i];
 	rel =  &rel[i + 1];
 	for (i = 0; i < count; i++) {
-		ptr = (u32 *) (base + rel[i]);
-		*ptr += __pa(base);
+		ptr = (u32)__pa(base);
+		memcpy(base + rel[i], &ptr, sizeof ptr);
 	}
 
 	/* Must be perfomed *after* relocation. */
