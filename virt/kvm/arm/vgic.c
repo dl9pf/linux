@@ -1104,6 +1104,8 @@ static void vgic_retire_disabled_irqs(struct kvm_vcpu *vcpu)
 static void vgic_queue_irq_to_lr(struct kvm_vcpu *vcpu, int irq,
 				 int lr_nr, struct vgic_lr vlr)
 {
+	struct vgic_dist *dist = &vcpu->kvm->arch.vgic;
+
 	if (vgic_irq_is_active(vcpu, irq)) {
 		vlr.state |= LR_STATE_ACTIVE;
 		kvm_debug("Set active, clear distributor: 0x%x\n", vlr.state);
@@ -1119,6 +1121,9 @@ static void vgic_queue_irq_to_lr(struct kvm_vcpu *vcpu, int irq,
 
 	vgic_set_lr(vcpu, lr_nr, vlr);
 	vgic_sync_lr_elrsr(vcpu, lr_nr, vlr);
+
+	if (dist->sw_cpuif && (vlr.state & LR_STATE_PENDING))
+		vcpu_set_hcr(vcpu, vcpu_get_hcr(vcpu) | HCR_VI);
 }
 
 /*
@@ -1169,6 +1174,115 @@ bool vgic_queue_irq(struct kvm_vcpu *vcpu, u8 sgi_source_id, int irq)
 	vgic_queue_irq_to_lr(vcpu, irq, lr, vlr);
 
 	return true;
+}
+
+int vgic_get_pending_irq(struct kvm_vcpu *vcpu)
+{
+	struct vgic_cpu *vgic_cpu = &vcpu->arch.vgic_cpu;
+	struct vgic_lr vlr;
+	int lr;
+
+	for_each_set_bit(lr, vgic_cpu->lr_used, vgic->nr_lr) {
+		vlr = vgic_get_lr(vcpu, lr);
+
+		if (vlr.state & LR_STATE_PENDING) {
+			vlr.state &= ~LR_STATE_PENDING;
+			vlr.state |= LR_STATE_ACTIVE;
+			vgic_set_lr(vcpu, lr, vlr);
+
+			return vlr.irq;
+		}
+	}
+	vcpu_set_hcr(vcpu, vcpu_get_hcr(vcpu) & ~HCR_VI);
+	return 1023;
+}
+
+static int vgic_eoi_level_irq(struct kvm_vcpu *vcpu, int irq)
+{
+	struct vgic_dist *dist = &vcpu->kvm->arch.vgic;
+	int level_pending;
+
+	vgic_irq_clear_queued(vcpu, irq);
+
+	/*
+	 * If the IRQ was EOIed it was also ACKed and we we
+	 * therefore assume we can clear the soft pending
+	 * state (should it had been set) for this interrupt.
+	 *
+	 * Note: if the IRQ soft pending state was set after
+	 * the IRQ was acked, it actually shouldn't be
+	 * cleared, but we have no way of knowing that unless
+	 * we start trapping ACKs when the soft-pending state
+	 * is set.
+	 */
+	vgic_dist_irq_clear_soft_pend(vcpu, irq);
+
+	/*
+	 * kvm_notify_acked_irq calls kvm_set_irq()
+	 * to reset the IRQ level. Need to release the
+	 * lock for kvm_set_irq to grab it.
+	 */
+	spin_unlock(&dist->lock);
+
+	kvm_notify_acked_irq(vcpu->kvm, 0, irq - VGIC_NR_PRIVATE_IRQS);
+	spin_lock(&dist->lock);
+
+	/* Any additional pending interrupt? */
+	level_pending = vgic_dist_irq_get_level(vcpu, irq);
+	if (level_pending) {
+		vgic_cpu_irq_set(vcpu, irq);
+	} else {
+		vgic_dist_irq_clear_pending(vcpu, irq);
+		vgic_cpu_irq_clear(vcpu, irq);
+	}
+
+	return level_pending;
+}
+
+void vgic_clear_pending_irq(struct kvm_vcpu *vcpu, int irq)
+{
+	struct vgic_dist *dist = &vcpu->kvm->arch.vgic;
+	struct vgic_cpu *vgic_cpu = &vcpu->arch.vgic_cpu;
+	int level_pending = 0;
+	struct vgic_lr vlr;
+	int lr;
+
+	if (unlikely(irq >= dist->nr_irqs)) {
+		kvm_info("EOI on invalid IRQ %d from guest\n", irq);
+		return;
+	}
+
+	lr = vgic_cpu->vgic_irq_lr_map[irq];
+	if (unlikely(lr == LR_EMPTY)) {
+		kvm_info("EOI on non-pending IRQ %d from guest\n", irq);
+		return;
+	}
+
+	vlr = vgic_get_lr(vcpu, lr);
+
+	if (vlr.state & LR_EOI_INT)
+		level_pending = vgic_eoi_level_irq(vcpu, vlr.irq);
+
+	vlr.state = 0;
+	vgic_set_lr(vcpu, lr, vlr);
+	vgic_sync_lr_elrsr(vcpu, lr, vlr);
+
+	clear_bit(lr, vgic_cpu->lr_used);
+	vgic_cpu->vgic_irq_lr_map[vlr.irq] = LR_EMPTY;
+
+	/*
+	 * The following is the same as end of __kvm_vgic_sync_hwstate,
+	 * but with conditions inverted for performance optimization.
+	 */
+	if (!level_pending) {
+		u64 elrsr = vgic_get_elrsr(vcpu);
+		unsigned long *elrsr_ptr = u64_to_bitmask(&elrsr);
+		int pending = find_first_zero_bit(elrsr_ptr, vgic->nr_lr);
+
+		if (pending >= vgic->nr_lr)
+			return;
+	}
+	set_bit(vcpu->vcpu_id, dist->irq_pending_on_cpu);
 }
 
 static bool vgic_queue_hwirq(struct kvm_vcpu *vcpu, int irq)
@@ -1261,7 +1375,6 @@ static bool vgic_process_maintenance(struct kvm_vcpu *vcpu)
 	u32 status = vgic_get_interrupt_status(vcpu);
 	struct vgic_dist *dist = &vcpu->kvm->arch.vgic;
 	bool level_pending = false;
-	struct kvm *kvm = vcpu->kvm;
 
 	kvm_debug("STATUS = %08x\n", status);
 
@@ -1279,43 +1392,11 @@ static bool vgic_process_maintenance(struct kvm_vcpu *vcpu)
 			WARN_ON(vgic_irq_is_edge(vcpu, vlr.irq));
 
 			spin_lock(&dist->lock);
-			vgic_irq_clear_queued(vcpu, vlr.irq);
 			WARN_ON(vlr.state & LR_STATE_MASK);
 			vlr.state = 0;
 			vgic_set_lr(vcpu, lr, vlr);
 
-			/*
-			 * If the IRQ was EOIed it was also ACKed and we we
-			 * therefore assume we can clear the soft pending
-			 * state (should it had been set) for this interrupt.
-			 *
-			 * Note: if the IRQ soft pending state was set after
-			 * the IRQ was acked, it actually shouldn't be
-			 * cleared, but we have no way of knowing that unless
-			 * we start trapping ACKs when the soft-pending state
-			 * is set.
-			 */
-			vgic_dist_irq_clear_soft_pend(vcpu, vlr.irq);
-
-			/*
-			 * kvm_notify_acked_irq calls kvm_set_irq()
-			 * to reset the IRQ level. Need to release the
-			 * lock for kvm_set_irq to grab it.
-			 */
-			spin_unlock(&dist->lock);
-
-			kvm_notify_acked_irq(kvm, 0,
-					     vlr.irq - VGIC_NR_PRIVATE_IRQS);
-			spin_lock(&dist->lock);
-
-			/* Any additional pending interrupt? */
-			if (vgic_dist_irq_get_level(vcpu, vlr.irq)) {
-				vgic_cpu_irq_set(vcpu, vlr.irq);
-				level_pending = true;
-			} else {
-				vgic_dist_irq_clear_pending(vcpu, vlr.irq);
-				vgic_cpu_irq_clear(vcpu, vlr.irq);
-			}
+			level_pending |= vgic_eoi_level_irq(vcpu, vlr.irq);
 
 			spin_unlock(&dist->lock);
 
@@ -2115,11 +2196,13 @@ int kvm_vgic_hyp_init(void)
 	if (ret)
 		return ret;
 
-	ret = request_percpu_irq(vgic->maint_irq, vgic_maintenance_handler,
+	if (vgic->maint_irq) {
+		ret = request_percpu_irq(vgic->maint_irq, vgic_maintenance_handler,
 				 "vgic", kvm_get_running_vcpus());
-	if (ret) {
-		kvm_err("Cannot register interrupt %d\n", vgic->maint_irq);
-		return ret;
+		if (ret) {
+			kvm_err("Cannot register interrupt %d\n", vgic->maint_irq);
+			return ret;
+		}
 	}
 
 	ret = __register_cpu_notifier(&vgic_cpu_nb);

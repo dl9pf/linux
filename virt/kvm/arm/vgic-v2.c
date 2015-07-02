@@ -180,22 +180,27 @@ int vgic_v2_probe(struct device_node *vgic_node,
 		  const struct vgic_ops **ops,
 		  const struct vgic_params **params)
 {
-	int ret;
+	int ret = 0;
 	struct resource vctrl_res;
 	struct resource vcpu_res;
 	struct vgic_params *vgic = &vgic_v2_params;
 
+	vgic->nr_lr = VGIC_V2_MAX_LRS;
+
 	vgic->maint_irq = irq_of_parse_and_map(vgic_node, 0);
 	if (!vgic->maint_irq) {
 		kvm_err("error getting vgic maintenance irq from DT\n");
-		ret = -ENXIO;
-		goto out;
+		goto sw_emul;
 	}
 
-	ret = of_address_to_resource(vgic_node, 2, &vctrl_res);
-	if (ret) {
+	if (of_address_to_resource(vgic_node, 2, &vctrl_res)) {
 		kvm_err("Cannot obtain GICH resource\n");
-		goto out;
+		goto sw_emul;
+	}
+
+	if (of_address_to_resource(vgic_node, 3, &vcpu_res)) {
+		kvm_err("Cannot obtain GICV resource\n");
+		goto sw_emul;
 	}
 
 	vgic->vctrl_base = of_iomap(vgic_node, 2);
@@ -216,12 +221,6 @@ int vgic_v2_probe(struct device_node *vgic_node,
 		goto out_unmap;
 	}
 
-	if (of_address_to_resource(vgic_node, 3, &vcpu_res)) {
-		kvm_err("Cannot obtain GICV resource\n");
-		ret = -ENXIO;
-		goto out_unmap;
-	}
-
 	if (!PAGE_ALIGNED(vcpu_res.start)) {
 		kvm_err("GICV physical address 0x%llx not page aligned\n",
 			(unsigned long long)vcpu_res.start);
@@ -237,13 +236,13 @@ int vgic_v2_probe(struct device_node *vgic_node,
 		goto out_unmap;
 	}
 
-	vgic->can_emulate_gicv2 = true;
-	kvm_register_device_ops(&kvm_arm_vgic_v2_ops, KVM_DEV_TYPE_ARM_VGIC_V2);
-
 	vgic->vcpu_base = vcpu_res.start;
 
 	kvm_info("%s@%llx IRQ%d\n", vgic_node->name,
 		 vctrl_res.start, vgic->maint_irq);
+sw_emul:
+	vgic->can_emulate_gicv2 = true;
+	kvm_register_device_ops(&kvm_arm_vgic_v2_ops, KVM_DEV_TYPE_ARM_VGIC_V2);
 
 	vgic->type = VGIC_V2;
 	vgic->max_gic_vcpus = VGIC_V2_MAX_CPUS;

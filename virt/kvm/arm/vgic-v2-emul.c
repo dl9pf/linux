@@ -404,6 +404,8 @@ static const struct vgic_io_range vgic_dist_ranges[] = {
 	{}
 };
 
+static const struct vgic_io_range vgic_cpu_ranges[];
+
 static void vgic_dispatch_sgi(struct kvm_vcpu *vcpu, u32 reg)
 {
 	struct kvm *kvm = vcpu->kvm;
@@ -520,12 +522,20 @@ static int vgic_v2_map_resources(struct kvm *kvm,
 		goto out_unregister;
 	}
 
-	ret = kvm_phys_addr_ioremap(kvm, dist->vgic_cpu_base,
-				    params->vcpu_base, KVM_VGIC_V2_CPU_SIZE,
-				    true);
-	if (ret) {
-		kvm_err("Unable to remap VGIC CPU to VCPU\n");
-		goto out_unregister;
+	if (params->vcpu_base) {
+		ret = kvm_phys_addr_ioremap(kvm, dist->vgic_cpu_base,
+					    params->vcpu_base,
+					    KVM_VGIC_V2_CPU_SIZE, true);
+		if (ret) {
+			kvm_err("Unable to remap VGIC CPU to VCPU\n");
+			goto out_unregister;
+		}
+	} else {
+		vgic_register_kvm_io_dev(kvm, dist->vgic_cpu_base,
+					 KVM_VGIC_V2_CPU_SIZE,
+					 vgic_cpu_ranges, -1,
+					 &dist->cpu_iodev);
+		dist->sw_cpuif = true;
 	}
 
 	dist->ready = true;
@@ -611,6 +621,34 @@ static bool handle_cpu_mmio_misc(struct kvm_vcpu *vcpu,
 	return updated;
 }
 
+static bool handle_mmio_intack(struct kvm_vcpu *vcpu,
+			       struct kvm_exit_mmio *mmio, phys_addr_t offset)
+{
+	int pending;
+
+	if (mmio->is_write)
+		return false;
+
+	pending = vgic_get_pending_irq(vcpu);
+	mmio_data_write(mmio, ~0, pending);
+
+	return true;
+}
+
+static bool handle_mmio_eoi(struct kvm_vcpu *vcpu,
+			    struct kvm_exit_mmio *mmio, phys_addr_t offset)
+{
+	u32 reg;
+
+	if (!mmio->is_write)
+		return false;
+
+	reg = mmio_data_read(mmio, ~0);
+	vgic_clear_pending_irq(vcpu, reg);
+
+	return false;
+}
+
 static bool handle_mmio_abpr(struct kvm_vcpu *vcpu,
 			     struct kvm_exit_mmio *mmio, phys_addr_t offset)
 {
@@ -643,6 +681,16 @@ static const struct vgic_io_range vgic_cpu_ranges[] = {
 		.base		= GIC_CPU_CTRL,
 		.len		= 12,
 		.handle_mmio	= handle_cpu_mmio_misc,
+	},
+	{
+		.base		= GIC_CPU_INTACK,
+		.len		= 4,
+		.handle_mmio	= handle_mmio_intack,
+	},
+	{
+		.base		= GIC_CPU_EOI,
+		.len		= 4,
+		.handle_mmio	= handle_mmio_eoi,
 	},
 	{
 		.base		= GIC_CPU_ALIAS_BINPOINT,

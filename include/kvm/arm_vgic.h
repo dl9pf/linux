@@ -160,6 +160,9 @@ struct vgic_dist {
 	bool			in_kernel;
 	bool			ready;
 
+	/* Use software emulation of CPU interface */
+	bool			sw_cpuif;
+
 	/* vGIC model the kernel emulates for the guest (GICv2 or GICv3) */
 	u32			vgic_model;
 
@@ -251,6 +254,7 @@ struct vgic_dist {
 
 	struct vgic_vm_ops	vm_ops;
 	struct vgic_io_device	dist_iodev;
+	struct vgic_io_device	cpu_iodev;
 	struct vgic_io_device	*redist_iodevs;
 };
 
