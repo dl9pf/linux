@@ -256,3 +256,32 @@ out:
 	of_node_put(vgic_node);
 	return ret;
 }
+
+/*
+ *
+ */
+
+int vgic_v2_probe_sw(struct device_node *vgic_node,
+		  const struct vgic_ops **ops,
+		  const struct vgic_params **params)
+{
+	int ret = 0;
+//	struct resource vctrl_res;
+//	struct resource vcpu_res;
+	struct vgic_params *vgic = &vgic_v2_params;
+
+	vgic->nr_lr = VGIC_V2_MAX_LRS;
+
+	vgic->can_emulate_gicv2 = true;
+	kvm_register_device_ops(&kvm_arm_vgic_v2_ops, KVM_DEV_TYPE_ARM_VGIC_V2);
+
+	vgic->type = VGIC_V2;
+	vgic->max_gic_vcpus = VGIC_V2_MAX_CPUS;
+	*ops = &vgic_v2_ops;
+	*params = vgic;
+	goto out;
+
+out:
+	of_node_put(vgic_node);
+	return ret;
+}

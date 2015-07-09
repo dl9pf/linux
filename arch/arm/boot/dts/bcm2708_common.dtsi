@@ -73,6 +73,13 @@
 			#interrupt-cells = <2>;
 		};
 
+		vgic: dummyvgic {
+			compatible = "brcm,dummyvgic";
+			reg = <0x0 0x0>,
+			      <0x0 0x0>;
+			interrupts = <0 0 0>;
+		};
+
 		mailbox: mailbox@7e00b800 {
 			compatible = "brcm,bcm2708-vcio";
 			reg = <0x7e00b880 0x40>;

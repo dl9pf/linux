@@ -339,6 +339,9 @@ int kvm_vgic_vcpu_active_irq(struct kvm_vcpu *vcpu);
 int vgic_v2_probe(struct device_node *vgic_node,
 		  const struct vgic_ops **ops,
 		  const struct vgic_params **params);
+int vgic_v2_probe_sw(struct device_node *vgic_node,
+		  const struct vgic_ops **ops,
+		  const struct vgic_params **params);
 #ifdef CONFIG_ARM_GIC_V3
 int vgic_v3_probe(struct device_node *vgic_node,
 		  const struct vgic_ops **ops,
